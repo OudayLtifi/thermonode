@@ -69,3 +69,11 @@ def test_last_seq_survives_restart(tmp_path):
     h2.on_data(frame(9))
     assert h2.storage.count() == 1
     assert h2.metrics["frames_duplicate"] == 1
+
+
+def test_alert_without_callback_is_still_counted(tmp_path):
+    h = Handler(tmp_path / "gw.sqlite")
+    h.on_data(frame(1, state="ALERT"))
+    assert h.metrics["alerts"] == 1
+    assert h.storage.count("TN01") == 1
+    h.storage.close()

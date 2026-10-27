@@ -62,10 +62,7 @@ def parse_frame(text: str) -> Frame:
         raise FrameError("t")
     if isinstance(temp, bool) or not isinstance(temp, (int, float)):
         raise FrameError("temp")
-    try:
-        temp = float(temp)
-    except (TypeError, ValueError) as exc:
-        raise FrameError("temp") from exc
+    temp = float(temp)
     if state not in STATES:
         raise FrameError("state")
     return Frame(node_id, seq, t, float(temp), state)

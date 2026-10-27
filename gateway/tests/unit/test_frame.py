@@ -57,3 +57,35 @@ def test_EI02_invalid_frames_are_rejected(bad):
 
 def test_EI02_check_crc_without_member_is_false():
     assert check_crc('{"id":"TN01"}') is False
+
+import pytest
+from gateway.frame import FrameError, crc16_ccitt_false, parse_frame
+
+
+def _signed_raw(body):
+    crc = crc16_ccitt_false(body.encode("utf-8"))
+    return body[:-1] + f',"crc":"{crc:04X}"}}'
+
+
+@pytest.mark.parametrize("body", [
+    '{"id":42,"seq":1,"t":1,"temp":25.5,"state":"NORMAL"}',
+    '{"id":"bad id","seq":1,"t":1,"temp":25.5,"state":"NORMAL"}',
+    '{"id":"TN01","seq":"1","t":1,"temp":25.5,"state":"NORMAL"}',
+    '{"id":"TN01","seq":1,"t":true,"temp":25.5,"state":"NORMAL"}',
+    '{"id":"TN01","seq":1,"t":"1","temp":25.5,"state":"NORMAL"}',
+    '{"id":"TN01","seq":1,"t":-1,"temp":25.5,"state":"NORMAL"}',
+    '{"id":"TN01","seq":1,"t":1,"temp":true,"state":"NORMAL"}',
+    '{"id":"TN01","seq":1,"t":1,"temp":25.5,"state":"NORMAL",}',
+    f'{{"id":"TN01","seq":1,"t":1,"temp":{10**400},"state":"NORMAL"}}',
+])
+def test_EI02_rejects_invalid_field_edges(body):
+    with pytest.raises(FrameError):
+        parse_frame(_signed_raw(body))
+
+
+def test_EI02_valid_crc_non_object_is_rejected():
+    payload = '[{"x":1}]'
+    crc = crc16_ccitt_false(payload.encode("utf-8"))
+    text = '[{"x":1,"crc":"' + f"{crc:04X}" + '"}]'
+    with pytest.raises(FrameError, match="format"):
+        parse_frame(text)
