@@ -1,0 +1,7 @@
+# ID|Méthode de vérification|Preuve
+C-01|Configuration cible et mesure mémoire|Makefile firmware pour Cortex-M0+ et reports/size.txt
+C-02|Tests hors cible avec HAL simulée|firmware/test/hal_double.c et résultats Unity
+C-03|Tests unitaires et revue de la passerelle|gateway/tests/unit et gateway/gateway/storage.py
+ENF-03|Mesure de l’empreinte mémoire|reports/size.txt : flash 10192 octets, RAM 1640 octets, limites respectées
+ENF-04|Revue C99 et analyse statique|Compilation C99 avec avertissements en erreurs, cppcheck sans constat, dérogations dans docs/misra-deviations.md
+ENF-06|Essai de reprise après coupure réseau, utilisé comme scénario proxy|gateway/tests/integration/test_reconnect.py vérifie la reprise et l’ordre des séquences ; ne simule pas exactement 30 pour cent de pertes ni le délai maximal de 30 secondes

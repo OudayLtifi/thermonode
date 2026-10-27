@@ -13,7 +13,7 @@ GATEWAY_URL = os.environ.get("GATEWAY_URL", "http://localhost:8000")
 
 
 class Broker:
-    def stop(self):  subprocess.run(COMPOSE + ["stop", "broker"], check=True)
+    def stop(self):  subprocess.run(COMPOSE + ["stop", "--timeout", "2", "broker"], check=True)
     def start(self):
         subprocess.run(COMPOSE + ["start", "broker"], check=True)
         time.sleep(1)
@@ -26,6 +26,11 @@ class Node:
     def inject_measures(self, temps):
         with SCENARIO.open("a") as f:
             f.write("".join(f"{t}\n" for t in temps))
+    def inject_connection(self, connected):
+        value = 1 if connected else 0
+        with SCENARIO.open("a") as f:
+            f.write(f"CONN:{value}\n")
+
     def inject_command(self, obj):
         with SCENARIO.open("a") as f:
             f.write("CMD:" + json.dumps(obj, separators=(",", ":")) + "\n")
@@ -44,9 +49,13 @@ class Listener:
         self.frames, self.acks, self.buffered = [], [], 0
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="it-listener")
         self.client.on_message = self._on
+        self.client.on_connect = self._on_connect
         self.client.connect(MQTT_HOST, 1883)
-        self.client.subscribe([("thermonode/+/data", 0), ("thermonode/+/diag", 0), ("thermonode/+/ack", 0)])
         self.client.loop_start()
+
+    def _on_connect(self, client, userdata, flags, reason_code, properties):
+        client.subscribe([("thermonode/+/data", 0), ("thermonode/+/diag", 0), ("thermonode/+/ack", 0)])
+
     def _on(self, c, u, m):
         p = m.payload.decode(errors="replace")
         if m.topic.endswith("/data"):
